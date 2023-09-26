@@ -2,7 +2,7 @@ FROM debian:stable-slim
 
 # Set dir and create user
 WORKDIR /var/www/html/repo
-RUN useradd -ms /bin/bash xenter
+RUN useradd -ms /bin/bash admin
 
 # Install dependencies
 RUN apt-get update && \
@@ -13,27 +13,27 @@ RUN mkdir -p /opt/repo/keys && \
     mkdir -p /var/www/html/repo/dists/stable/main/binary-amd64 && \
     mkdir -p /var/www/html/repo/pool/main
 # Set directory permissions and enforce inheritance
-RUN chown -R xenter:xenter /opt/repo && \
+RUN chown -R admin:admin /opt/repo && \
     chmod u+s /opt/repo && \
     chmod g+s /opt/repo && \
     setfacl -d -m u::rwX /opt/repo && \
     setfacl -d -m g::rwX /opt/repo
-# Add xenter user to www-data group
-RUN usermod -a -G www-data xenter
+# Add admin user to www-data group
+RUN usermod -a -G www-data admin
 # Copy pgp batch script
 COPY ./src/pgp_key.batch /opt/repo/pgp_key.batch
 
 # Section for using temp pgp key for signing (proof of concept), uncomment to use a new temp key for testing on each build
 #RUN gpg --no-tty --batch --gen-key /opt/repo/pgp_key.batch
-#RUN gpg --armor --export Xenter > /opt/repo/keys/xenter-pgp.public && \
-#    gpg --armor --export-secret-keys Xenter > /opt/repo/keys/xenter-pgp.private && \
-#    cp /opt/repo/keys/xenter-pgp.public /var/www/html/repo/xenter.gpg
+#RUN gpg --armor --export admin > /opt/repo/keys/admin-pgp.public && \
+#    gpg --armor --export-secret-keys admin > /opt/repo/keys/admin-pgp.private && \
+#    cp /opt/repo/keys/admin-pgp.public /var/www/html/repo/admin.gpg
 
-# Section for using a xenter.gpg key thats already been generated, comment in if above section for temp key is used
+# Section for using a admin.gpg key thats already been generated, comment in if above section for temp key is used
 COPY src/private/* /opt/repo/keys/
-RUN gpg --import /opt/repo/keys/xenter.key
-RUN cat /opt/repo/keys/xenter.gpg | gpg --dearmor > /etc/apt/trusted.gpg.d/xenter.gpg && \
-    cp /opt/repo/keys/xenter.gpg /var/www/html/repo/xenter.gpg && \
+RUN gpg --import /opt/repo/keys/admin.key
+RUN cat /opt/repo/keys/admin.gpg | gpg --dearmor > /etc/apt/trusted.gpg.d/admin.gpg && \
+    cp /opt/repo/keys/admin.gpg /var/www/html/repo/admin.gpg && \
     chmod 600 /opt/repo/keys/* && \
     chmod 700 /opt/repo/keys
 
@@ -44,13 +44,13 @@ RUN dpkg-scanpackages pool/ > dists/stable/main/binary-amd64/Packages
 RUN cat dists/stable/main/binary-amd64/Packages | gzip -9 > dists/stable/main/binary-amd64/Packages.gz && \
     apt-ftparchive release dists/stable > dists/stable/Release
 # Create Release and InRelease files
-RUN gpg --default-key Xenter -abs -o dists/stable/Release.gpg dists/stable/Release
-RUN gpg --default-key Xenter --clearsign -o dists/stable/InRelease dists/stable/Release
+RUN gpg --default-key admin -abs -o dists/stable/Release.gpg dists/stable/Release
+RUN gpg --default-key admin --clearsign -o dists/stable/InRelease dists/stable/Release
 
 # Configure Apache
-COPY src/apache.conf /etc/apache2/sites-available/xenter.conf
+COPY src/apache.conf /etc/apache2/sites-available/repo.conf
 # Enable Apache modules
-RUN a2ensite xenter
+RUN a2ensite repo
 RUN a2enmod alias
 RUN a2enmod rewrite
 RUN a2enmod deflate
@@ -62,15 +62,9 @@ RUN cat /dev/urandom | \
     grep -i '[!@#$%^&*()_+{}|:<>?=]' | \
     head -n 1 > /opt/repo/keys/htpasswd && \
     chmod 600 /opt/repo/keys/htpasswd
-RUN cat /opt/repo/keys/htpasswd | htpasswd -i -c /etc/apache2/.htpasswd xenter
+RUN cat /opt/repo/keys/htpasswd | htpasswd -i -c /etc/apache2/.htpasswd admin
 
-# Changing user to xenter breaks apache for some reason
-# USER xenter 
+# Changing user to admin breaks apache for some reason
+# USER admin 
 EXPOSE 80
 CMD ["apache2ctl", "-D", "FOREGROUND"]
-
-# Commands for setting up repo in another docker container for testing
-# docker run -it --rm ubuntu:latest
-# apt update && apt install -y curl gnupg2 && curl 172.17.0.2:80/repo/xenter.gpg | gpg --dearmor > /etc/apt/trusted.gpg.d/xenter.gpg
-# echo "deb http://172.17.0.2:80/repo stable main" > /etc/apt/sources.list.d/xenter.list
-# apt update && apt search xenfi
