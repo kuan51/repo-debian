@@ -35,14 +35,15 @@ All commands are in bash. It is recommended to use WSL or a debian/ubuntu VM.
     echo -e "\nprivate/\nadmin.gpg\nadmin.key" >> .gitignore
     ```
 
-3. Build and run the dockerfile. This must be run from the repo root.
+3. Add your custom debian packages to `src/repository`.
+4. Build and run the dockerfile. This must be run from the repo root.
 
     ```bash
     docker build -t admin-repo .
     docker run --name admin-apt-repo -p 80:80 -d admin-repo
     ```
 
-4. On a debian/ubuntu client, set up the new repository. This guide assumes the repository server and client are on the same network already, or the server is publicly available. Update the `APT_REPO` variable with the IP/domain name and port (*if applicable*) for the repository server.
+5. On a debian/ubuntu client, set up the new repository. This guide assumes the repository server and client are on the same network already, or the server is publicly available. Update the `APT_REPO` variable with the IP/domain name and port (*if applicable*) for the repository server.
 
     Easiest option is to test with a docker container on the same network
 
