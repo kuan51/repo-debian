@@ -1,12 +1,12 @@
-%echo Generating a PGP key for the My Debian Repo
+%echo Generating a PGP key for your Debian Repo
 Key-Type: EDDSA
     Key-Curve: ed25519
     Key-Usage: sign
 Subkey-Type: ECDH
     Subkey-Curve: cv25519
     Subkey-Usage: encrypt
-Name-Real: NoName
-Name-Email: na@noemail.com
+Name-Real: Admin
+Name-Email: admin@no.email
 Expire-Date: 0
 %no-ask-passphrase
 %no-protection

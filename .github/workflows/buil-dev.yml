@@ -1,0 +1,84 @@
+name: Build Dev Image
+
+on:
+    workflow_dispatch:
+
+env:
+    REGISTRY: ghcr.io
+    IMAGE_NAME: ${{ github.repository }}
+    PROD: false
+
+jobs:
+
+    build-dev:
+        runs-on: ubuntu-latest
+        permissions:
+          contents: write
+    
+        steps:
+          - name: Checkout repository
+            uses: actions/checkout@v3
+            with:
+              fetch-depth: 0
+
+          - name: Version
+            id: versioning
+            uses: PaulHatch/semantic-version@v5.2.1
+            with:
+                branch: main
+                major_pattern: "breaking:"
+                minor_pattern: "feat:"
+                version_format: "${major}.${minor}.${patch}"
+                tag_prefix: ''
+                bump_each_commit: false
+
+          - name: Print Version
+            run: |
+                echo "version: ${{ steps.versioning.outputs.version }}"
+
+          - name: Include PGP Keys
+            id: pgp
+            run: |
+                mkdir -p src/private
+                echo "${{ secrets.PGP_PRIVATE_KEY }}" | base64 -d > src/private/repo.key
+                echo "${{ secrets.PGP_PUBLIC_KEY }}" | base64 -d > src/private/repo.gpg
+
+          - name: Set up Docker Buildx
+            uses: docker/setup-buildx-action@v2
+
+          - name: Log into container registry
+            uses: docker/login-action@v2.1.0
+            with:
+              registry: ${{ env.REGISTRY }}
+              username: ${{ github.actor }}
+              password: ${{ secrets.GHCR_IO_TOKEN }}
+
+          - name: Extract metadata (tags, labels) Docker
+            id: meta
+            uses: docker/metadata-action@v4.1.1
+            with:
+                images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+                tags: |
+                    type=semver,pattern={{version}},value=${{ env.version }}
+                    type=raw,value=beta-latest
+            env:
+                VERSION: ${{ steps.versioning.outputs.version }}
+
+          - name: Build and push Docker Images
+            id: push
+            run: |
+                sed -i "s/prod={prod}/prod=${{ env.PROD }}/g" ./build/build.sh
+                sed -i "s/version={version}/version=${{ env.VERSION }}/g" ./build/vars.sh
+                chmod 755 build/build.sh
+                ./build/build.sh
+            env:
+                VERSION: ${{ steps.versioning.outputs.version }}
+
+          - name: Create Release
+            id: gh_release
+            run: |
+                gh release create ${{ env.VERSION }} -p -t "${{ env.NAME }}"
+            env:
+                GITHUB_TOKEN: ${{ secrets.GHCR_IO_TOKEN }}
+                VERSION: ${{ steps.versioning.outputs.version }}
+                NAME: v${{ steps.versioning.outputs.version }}

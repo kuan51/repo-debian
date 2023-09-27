@@ -1,0 +1,10 @@
+{
+    "description": "Docker image for hosting your own debian packages with authentication.",
+    "image": {
+        "repository": "ghcr.io/kuan51/repo-debian",
+        "platforms": [
+        "linux/amd64",
+        "linux/arm64"
+        ]
+    }
+}
