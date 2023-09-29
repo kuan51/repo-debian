@@ -36,8 +36,8 @@ COPY ./src/pgp_key.batch /opt/repo/pgp_key.batch
 
 # Section for using temp pgp key for signing (proof of concept), uncomment to use a new temp key for testing on each build
 RUN gpg --no-tty --batch --gen-key /opt/repo/pgp_key.batch
-RUN gpg --armor --export repo > /opt/repo/keys/repo-pgp.public && \
-    gpg --armor --export-secret-keys repo > /opt/repo/keys/repo-pgp.private && \
+RUN gpg --armor --export Admin > /opt/repo/keys/repo-pgp.public && \
+    gpg --armor --export-secret-keys Admin > /opt/repo/keys/repo-pgp.private && \
     cp /opt/repo/keys/repo-pgp.public /var/www/repo/repo.gpg
 
 # Section for using a repo.gpg key thats already been generated, comment in if above section for temp key is used
@@ -53,8 +53,8 @@ RUN dpkg-scanpackages pool/ > dists/stable/main/binary-amd64/Packages
 RUN cat dists/stable/main/binary-amd64/Packages | gzip -9 > dists/stable/main/binary-amd64/Packages.gz && \
     apt-ftparchive release dists/stable > dists/stable/Release
 # Create Release and InRelease files
-RUN gpg --default-key repo -abs -o dists/stable/Release.gpg dists/stable/Release
-RUN gpg --default-key repo --clearsign -o dists/stable/InRelease dists/stable/Release
+RUN gpg --default-key Admin -abs -o dists/stable/Release.gpg dists/stable/Release
+RUN gpg --default-key Admin --clearsign -o dists/stable/InRelease dists/stable/Release
 
 # Configure Apache
 COPY src/repo.conf /etc/apache2/sites-available/$REPO_DOMAIN.conf
