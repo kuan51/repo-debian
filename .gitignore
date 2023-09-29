@@ -1,3 +1,5 @@
-private/*
+private/
 repo.gpg
 repo.key
+.env
+repository/
